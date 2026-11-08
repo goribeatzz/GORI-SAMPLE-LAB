@@ -24,12 +24,17 @@
     </section>
 
     <section class="panel">
-      <div class="section-head"><span class="step">01</span><div><p class="eyebrow">SOURCE MATERIAL</p><h2>Importar referência</h2></div></div>
-      <label class="dropzone" for="audioFile"><span class="upload-icon">＋</span><strong>Escolher arquivo de áudio</strong><small>WAV, MP3, M4A, AIFF, FLAC ou OGG · até 80 MB</small></label>
+      <div class="section-head"><span class="step">01</span><div><p class="eyebrow">SOURCE MATERIAL</p><h2>Referência do YouTube</h2></div></div>
+      <label class="field-label" for="youtubeUrl">COLE O ENDEREÇO DO VÍDEO</label>
+      <div class="url-row"><input id="youtubeUrl" type="url" inputmode="url" placeholder="https://www.youtube.com/watch?v=..." autocomplete="url"><button id="loadYoutubeBtn" class="button outline" type="button">Abrir</button></div>
+      <p class="hint">O link abre o vídeo como referência para você ouvir. O YouTube não libera o áudio do player para análise direta neste aplicativo.</p>
+      <div id="youtubePreview" class="youtube-preview" hidden></div>
+      <div class="file-divider"><span>ÁUDIO PARA ANÁLISE</span></div>
+      <label class="dropzone" for="audioFile"><span class="upload-icon">＋</span><strong>Importar o áudio da referência</strong><small>WAV, MP3, M4A, AIFF, FLAC ou OGG · até 80 MB</small></label>
       <input id="audioFile" type="file" accept="audio/*,.wav,.mp3,.m4a,.aiff,.aif,.flac,.ogg" hidden>
       <div class="fileline" id="fileLine">Nenhum arquivo selecionado</div>
       <audio id="sourcePlayer" controls hidden></audio>
-      <p class="hint">O áudio é processado no próprio navegador. Não enviamos seu arquivo. Não baixamos áudio do YouTube; importe apenas material que você tenha direito de usar.</p>
+      <p class="hint">A análise é feita localmente a partir do arquivo selecionado. O link do YouTube não é baixado nem analisado. Importe somente áudio que você tenha direito de usar.</p>
       <button id="analyzeBtn" class="button primary" disabled>Analisar áudio</button>
       <p class="feedback" id="analysisFeedback" aria-live="polite"></p>
     </section>
