@@ -21,7 +21,7 @@ function extractOutputText(data) {
   if (typeof data.output_text==="string") return data.output_text;
   const parts=[];
   const walk=v=>{ if(!v)return; if(Array.isArray(v)){v.forEach(walk);return;} if(typeof v==="object"){if(typeof v.text==="string")parts.push(v.text); for(const [k,x] of Object.entries(v))if(k!=="text")walk(x);} };
-  walk(data.output); return parts.join("\n");
+  walk(data.output); walk(data.steps); return parts.join("\n");
 }
 function parseJsonText(raw) {
   const cleaned=raw.trim().replace(/^\x60\x60\x60(?:json)?\s*/i,"").replace(/\s*\x60\x60\x60$/,"");
@@ -51,7 +51,7 @@ export default {
       const prompt=`Analise este áudio como um produtor musical e engenheiro de áudio. Retorne SOMENTE um objeto JSON válido, sem markdown, com estas chaves: summary (resumo curto em português), bpm_estimate (número ou null), bpm_confidence (baixa|média|alta), key_estimate (tom provável ou null), key_confidence (baixa|média|alta), groove (descrição), swing (descrição), rhythmic_density (baixa|média|alta e justificativa), instrumentation (array de objetos {family,role,confidence}), harmony (descrição cautelosa; não invente acordes específicos), texture (descrição), energy_dynamics (descrição), mood (array de termos), sample_source_hypotheses (array de pistas sobre famílias de instrumentos, épocas/estéticas e técnicas de gravação; nunca afirme identificar um sample exato), notable_sections (array de objetos {approx_time,description}), generation_brief (instruções concisas para criar uma composição inteiramente nova inspirada apenas em atributos musicais gerais). Distinga claramente observações de hipóteses. Não identifique artistas, faixas ou samples sem evidência. Se não puder determinar um campo, use null ou baixa confiança.`;
       let geminiResponse;
       try{
-        geminiResponse=await fetch("https://generativelanguage.googleapis.com/v1beta/interactions",{method:"POST",headers:{"x-goog-api-key":env.GEMINI_API_KEY,"Content-Type":"application/json"},body:JSON.stringify({model:"gemini-3.8-flash",input:[{type:"text",text:prompt},{type:"audio",data:audio,mime_type:mime}]})});
+        geminiResponse=await fetch("https://generativelanguage.googleapis.com/v1beta/interactions",{method:"POST",headers:{"x-goog-api-key":env.GEMINI_API_KEY,"Content-Type":"application/json"},body:JSON.stringify({model:"gemini-3.8-flash",input:[{type:"text",text:prompt},{type:"audio",data:audio,mime_type:(mime==="audio/mpeg"||mime==="audio/mp3")?"audio/mp3":mime}] ,store:false})});
       }catch{return json({error:"Não foi possível conectar ao serviço de análise Gemini."},502,origin)}
       const payload=await geminiResponse.json().catch(()=>({}));
       if(!geminiResponse.ok)return json({error:"O Gemini recusou a análise. Verifique a disponibilidade do modelo e a cota da API."},geminiResponse.status===429?429:502,origin);
