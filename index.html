@@ -30,12 +30,12 @@
       <p class="hint">O link abre o vídeo como referência para você ouvir. O YouTube não libera o áudio do player para análise direta neste aplicativo.</p>
       <div id="youtubePreview" class="youtube-preview" hidden></div>
       <div class="file-divider"><span>ÁUDIO PARA ANÁLISE</span></div>
-      <label class="dropzone" for="audioFile"><span class="upload-icon">＋</span><strong>Importar o áudio da referência</strong><small>WAV, MP3, M4A, AIFF, FLAC ou OGG · até 80 MB</small></label>
+      <label class="dropzone" for="audioFile"><span class="upload-icon">＋</span><strong>Importar o áudio da referência</strong><small>WAV, MP3, M4A, AIFF, FLAC ou OGG · até 14 MB para análise com Gemini</small></label>
       <input id="audioFile" type="file" accept="audio/*,.wav,.mp3,.m4a,.aiff,.aif,.flac,.ogg" hidden>
       <div class="fileline" id="fileLine">Nenhum arquivo selecionado</div>
       <audio id="sourcePlayer" controls hidden></audio>
       <p class="hint">A análise é feita localmente a partir do arquivo selecionado. O link do YouTube não é baixado nem analisado. Importe somente áudio que você tenha direito de usar.</p>
-      <button id="analyzeBtn" class="button primary" disabled>Analisar áudio</button>
+      <div class="url-row"><button id="analyzeBtn" class="button outline" disabled>Análise local</button><button id="analyzeAiBtn" class="button primary" disabled>Analisar com Gemini</button></div>\n      <div id="geminiAnalysis" class="profile" hidden style="white-space:pre-wrap"></div>
       <p class="feedback" id="analysisFeedback" aria-live="polite"></p>
     </section>
 
@@ -57,7 +57,7 @@
     <section class="panel">
       <div class="section-head"><span class="step">03</span><div><p class="eyebrow">GENERATIVE SKETCHES</p><h2>Três direções</h2></div></div>
       <p class="muted">Gere instrumentais originais com IA. Ajuste o BPM e o tom na análise acima antes de criar.</p>
-      <div class="security-check"><p class="field-label">VERIFICAÇÃO DE SEGURANÇA</p><div class="cf-turnstile" data-sitekey="0x4AAAAAAF5AzEvPRMtDqrfH" data-theme="dark" data-language="pt-BR"></div></div>
+      <div class="security-check"><p class="field-label">VERIFICAÇÃO DE SEGURANÇA — NECESSÁRIA PARA ANÁLISE E GERAÇÃO</p><div class="cf-turnstile" data-sitekey="0x4AAAAAAF5AzEvPRMtDqrfH" data-theme="dark" data-language="pt-BR"></div></div>
       <div class="proposals">
         <article class="proposal"><div><span class="tag">01 / WARM</span><h3>Warm Keys</h3><p>Piano elétrico · soul · acordes quentes</p></div><button class="button outline generate" data-style="warm">Gerar com IA</button><audio controls hidden></audio><a class="download" hidden>Baixar WAV</a></article>
         <article class="proposal"><div><span class="tag">02 / DARK</span><h3>Dark Tape</h3><p>Textura escura · saturação · fita</p></div><button class="button outline generate" data-style="dark">Gerar com IA</button><audio controls hidden></audio><a class="download" hidden>Baixar WAV</a></article>
