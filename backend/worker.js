@@ -54,8 +54,19 @@ export default {
         geminiResponse=await fetch("https://generativelanguage.googleapis.com/v1beta/interactions",{method:"POST",headers:{"x-goog-api-key":env.GEMINI_API_KEY,"Content-Type":"application/json"},body:JSON.stringify({model:"gemini-3.8-flash",input:[{type:"text",text:prompt},{type:"audio",data:audio,mime_type:(mime==="audio/mpeg"||mime==="audio/mp3")?"audio/mp3":mime}] ,store:false})});
       }catch{return json({error:"Não foi possível conectar ao serviço de análise Gemini."},502,origin)}
       const payload=await geminiResponse.json().catch(()=>({}));
-      if(!geminiResponse.ok)return json({error:"O Gemini recusou a análise. Verifique a disponibilidade do modelo e a cota da API."},geminiResponse.status===429?429:502,origin);
-      try{return json({ok:true,analysis:parseJsonText(extractOutputText(payload))},200,origin)}catch{return json({error:"O Gemini respondeu, mas não foi possível estruturar a análise. Tente novamente."},502,origin)}
+      if(!geminiResponse.ok){
+        const providerMessage=typeof payload.error?.message==="string"?payload.error.message.slice(0,500):"Sem mensagem detalhada do provedor.";
+        console.error("Gemini API error",geminiResponse.status,providerMessage);
+        return json({error:"Gemini API ("+geminiResponse.status+"): "+providerMessage},geminiResponse.status===429?429:502,origin);
+      }
+      try{
+        const outputText=extractOutputText(payload);
+        if(!outputText)throw new Error("A resposta do Gemini veio sem texto de saída.");
+        return json({ok:true,analysis:parseJsonText(outputText)},200,origin);
+      }catch(error){
+        console.error("Gemini response parsing error",String(error),JSON.stringify(payload).slice(0,1200));
+        return json({error:"O Gemini respondeu, mas a análise não pôde ser interpretada: "+String(error).slice(0,250)},502,origin);
+      }
     }
 
     if(!env.ELEVENLABS_API_KEY)return json({error:"Generation service is not configured yet."},503,origin);
