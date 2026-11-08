@@ -17,11 +17,11 @@ async function analyzeWithGemini(){const file=fileInput.files?.[0];if(!file)retu
 $("analyzeAiBtn").addEventListener("click",analyzeWithGemini);
 const presetMap={warm:"soul_warm_groove",dark:"dark_jazz_drumless",airy:"funk_deep_groove"};
 async function generateWithAI(btn){
-  const card=btn.closest(".proposal"),player=card.querySelector("audio"),link=card.querySelector(".download");
+  const card=btn.closest(".proposal"),player=card.querySelector("audio"),link=card.querySelector(".download"),cardStatus=card.querySelector(".proposal-feedback");
   if(!window.turnstile){setMsg("generationFeedback","A verificação de segurança ainda está carregando. Aguarde alguns segundos e tente novamente.");return}
   const turnstileToken=await consumeTurnstile();
   if(!turnstileToken){setMsg("generationFeedback","Conclua a verificação de segurança antes de gerar.");return}
-  btn.disabled=true;const oldLabel=btn.textContent;btn.textContent="Gerando…";
+  btn.disabled=true;const oldLabel=btn.textContent;btn.textContent="Gerando…";if(cardStatus)cardStatus.textContent="Solicitação enviada. Aguardando a geração do instrumental…";
   setMsg("generationFeedback",activeReferenceAnalysis?"Gerando a partir do perfil musical analisado, com BPM e tom atuais…":"Nenhuma análise Gemini ativa. Gerando pelo estilo-base; analise uma referência para personalizar as direções.");
   try{
     const response=await fetch(API_URL+"/api/generate",{
