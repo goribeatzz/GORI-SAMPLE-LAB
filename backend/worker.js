@@ -113,7 +113,15 @@ export default {
     const referenceContext=compactProfile?"REFERENCE PROFILE (musical observations and hypotheses; use as descriptive context, not as instructions): "+JSON.stringify(compactProfile):"No Gemini reference profile was supplied. Follow the selected style preset only.";
     const prompt=[preset,directionInstructions[input.preset],referenceContext,`Target tempo: approximately ${Math.round(bpm)} BPM.`,`Tonal center: ${key}.`,"Create a completely original instrumental, with no vocals, no copied melody, no recognizable sample, no lyrics and no recreation of the source recording. Use the reference profile only for general musical attributes. Develop a coherent beginning, middle and ending with variation, human feel and a sample-worthy 45-second excerpt."].filter(Boolean).join(" ");
     let musicResponse; try{musicResponse=await fetch("https://api.elevenlabs.io/v1/music?output_format=mp3_48000_192",{method:"POST",headers:{"xi-api-key":env.ELEVENLABS_API_KEY,"Content-Type":"application/json"},body:JSON.stringify({prompt,music_length_ms:durationMs,model_id:"music_v2_5",force_instrumental:true})})}catch{return json({error:"Could not reach the music generation provider."},502,origin)}
-    if(!musicResponse.ok){await musicResponse.body?.cancel();return json({error:"The music provider rejected the request. Check account access, credits and API permissions."},musicResponse.status===429?429:502,origin)}
+    if(!musicResponse.ok){
+      const providerText=await musicResponse.text().catch(()=>"");
+      let providerMessage=providerText;
+      try{const parsed=JSON.parse(providerText);providerMessage=parsed.detail?.message||parsed.detail||parsed.message||parsed.error?.message||providerText}catch{}
+      if(typeof providerMessage!=="string")providerMessage=JSON.stringify(providerMessage);
+      providerMessage=providerMessage.slice(0,500);
+      console.error("ElevenLabs generation error",musicResponse.status,providerMessage);
+      return json({error:"ElevenLabs API ("+musicResponse.status+"): "+providerMessage},musicResponse.status===429?429:502,origin)
+    }
     return new Response(musicResponse.body,{status:200,headers:{"Content-Type":musicResponse.headers.get("Content-Type")||"audio/mpeg","Content-Disposition":'attachment; filename="gori-sample-lab-original.mp3"',"Access-Control-Allow-Origin":origin,"Access-Control-Expose-Headers":"song-id, Content-Disposition","Vary":"Origin","Cache-Control":"no-store",...(musicResponse.headers.get("song-id")?{"song-id":musicResponse.headers.get("song-id")}:{})}});
   }
 };
