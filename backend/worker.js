@@ -49,22 +49,40 @@ export default {
       if(!allowed.includes(mime))return json({error:"Formato de áudio não suportado para análise Gemini."},400,origin);
       if(!audio||audio.length>Math.ceil(MAX_ANALYSIS_BYTES*4/3)+16)return json({error:"Para a análise Gemini, use um arquivo de até 14 MB."},413,origin);
       const prompt=`Analise este áudio como um produtor musical e engenheiro de áudio. Retorne SOMENTE um objeto JSON válido, sem markdown, com estas chaves: summary (resumo curto em português), bpm_estimate (número ou null), bpm_confidence (baixa|média|alta), key_estimate (tom provável ou null), key_confidence (baixa|média|alta), groove (descrição), swing (descrição), rhythmic_density (baixa|média|alta e justificativa), instrumentation (array de objetos {family,role,confidence}), harmony (descrição cautelosa; não invente acordes específicos), texture (descrição), energy_dynamics (descrição), mood (array de termos), sample_source_hypotheses (array de pistas sobre famílias de instrumentos, épocas/estéticas e técnicas de gravação; nunca afirme identificar um sample exato), notable_sections (array de objetos {approx_time,description}), generation_brief (instruções concisas para criar uma composição inteiramente nova inspirada apenas em atributos musicais gerais). Distinga claramente observações de hipóteses. Não identifique artistas, faixas ou samples sem evidência. Se não puder determinar um campo, use null ou baixa confiança.`;
-      let geminiResponse;
-      try{
-        geminiResponse=await fetch("https://generativelanguage.googleapis.com/v1beta/interactions",{method:"POST",headers:{"x-goog-api-key":env.GEMINI_API_KEY,"Content-Type":"application/json"},body:JSON.stringify({model:"gemini-3.8-flash",input:[{type:"text",text:prompt},{type:"audio",data:audio,mime_type:(mime==="audio/mpeg"||mime==="audio/mp3")?"audio/mp3":mime}] ,store:false})});
-      }catch{return json({error:"Não foi possível conectar ao serviço de análise Gemini."},502,origin)}
-      const payload=await geminiResponse.json().catch(()=>({}));
-      if(!geminiResponse.ok){
-        const providerMessage=typeof payload.error?.message==="string"?payload.error.message.slice(0,500):"Sem mensagem detalhada do provedor.";
-        console.error("Gemini API error",geminiResponse.status,providerMessage);
-        return json({error:"Gemini API ("+geminiResponse.status+"): "+providerMessage},geminiResponse.status===429?429:502,origin);
+      const geminiModels=["gemini-3.8-flash","gemini-3.6-flash"];
+      let geminiResponse=null;
+      let payload={};
+      let selectedModel="";
+      let lastProviderMessage="";
+      for(const model of geminiModels){
+        selectedModel=model;
+        try{
+          geminiResponse=await fetch("https://generativelanguage.googleapis.com/v1beta/interactions",{
+            method:"POST",
+            headers:{"x-goog-api-key":env.GEMINI_API_KEY,"Content-Type":"application/json"},
+            body:JSON.stringify({model,input:[{type:"text",text:prompt},{type:"audio",data:audio,mime_type:(mime==="audio/mpeg"||mime==="audio/mp3")?"audio/mp3":mime}],store:false})
+          });
+        }catch(error){
+          lastProviderMessage=String(error).slice(0,250);
+          console.error("Gemini connection error",model,lastProviderMessage);
+          continue;
+        }
+        payload=await geminiResponse.json().catch(()=>({}));
+        if(geminiResponse.ok)break;
+        lastProviderMessage=typeof payload.error?.message==="string"?payload.error.message.slice(0,500):"Sem mensagem detalhada do provedor.";
+        console.error("Gemini API error",model,geminiResponse.status,lastProviderMessage);
+        if(geminiResponse.status!==503)break;
+      }
+      if(!geminiResponse||!geminiResponse.ok){
+        const status=geminiResponse?.status||502;
+        return json({error:"Falha na análise com Gemini ("+status+"). Modelo tentado: "+selectedModel+". "+lastProviderMessage},status===429?429:502,origin);
       }
       try{
         const outputText=extractOutputText(payload);
         if(!outputText)throw new Error("A resposta do Gemini veio sem texto de saída.");
-        return json({ok:true,analysis:parseJsonText(outputText)},200,origin);
+        return json({ok:true,model:selectedModel,analysis:parseJsonText(outputText)},200,origin);
       }catch(error){
-        console.error("Gemini response parsing error",String(error),JSON.stringify(payload).slice(0,1200));
+        console.error("Gemini response parsing error",selectedModel,String(error),JSON.stringify(payload).slice(0,1200));
         return json({error:"O Gemini respondeu, mas a análise não pôde ser interpretada: "+String(error).slice(0,250)},502,origin);
       }
     }
