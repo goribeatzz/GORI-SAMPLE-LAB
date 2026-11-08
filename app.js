@@ -48,9 +48,9 @@ async function generateWithAI(btn){
     player.dataset.url=url;player.src=url;player.hidden=false;
     link.href=url;link.download="GORI-SAMPLE-LAB-"+btn.dataset.style.toUpperCase()+".mp3";
     link.hidden=false;link.textContent="↓ Baixar MP3";
-    setMsg("generationFeedback","Instrumental original gerado pela IA. Ouça ou baixe o MP3.");
+    if(cardStatus)cardStatus.textContent="Áudio gerado. Use o player acima para ouvir ou baixe o MP3.";setMsg("generationFeedback","Instrumental original gerado. O arquivo está em MP3.");
   }catch(error){
-    setMsg("generationFeedback",error.message||"Falha de conexão com o serviço de geração.");
+    if(cardStatus)cardStatus.textContent="Falha: "+(error.message||"Não foi possível gerar o áudio.");setMsg("generationFeedback",error.message||"Falha de conexão com o serviço de geração.");
   }finally{
     try{window.turnstile.reset()}catch{}
     btn.disabled=false;btn.textContent=oldLabel;
