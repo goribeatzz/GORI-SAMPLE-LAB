@@ -35,7 +35,7 @@ export default {
     if(request.method==="OPTIONS"){ if(!origin)return new Response(null,{status:403}); return new Response(null,{status:204,headers:{"Access-Control-Allow-Origin":origin,"Access-Control-Allow-Methods":"GET, POST, OPTIONS","Access-Control-Allow-Headers":"Content-Type","Access-Control-Max-Age":"86400","Vary":"Origin"}}); }
     if(!origin)return new Response("Forbidden",{status:403});
     const url=new URL(request.url);
-    if(request.method==="GET"&&url.pathname==="/api/health") return json({ok:true,service:"GORI SAMPLE LAB API",generationConfigured:Boolean(env.ELEVENLABS_API_KEY&&env.TURNSTILE_SECRET_KEY),referenceAnalysisConfigured:Boolean(env.GEMINI_API_KEY&&env.TURNSTILE_SECRET_KEY)},200,origin);
+    if(request.method==="GET"&&url.pathname==="/api/health") return json({ok:true,service:"GORI SAMPLE LAB API",generationConfigured:false,sampleGenerationStatus:"free_engine_integration_pending",referenceAnalysisConfigured:Boolean(env.GEMINI_API_KEY&&env.TURNSTILE_SECRET_KEY)},200,origin);
     if(request.method!=="POST"||!["/api/generate","/api/analyze-reference"].includes(url.pathname))return json({error:"Endpoint not found."},404,origin);
     if(!env.TURNSTILE_SECRET_KEY)return json({error:"Security service is not configured."},503,origin);
     let input; try{input=await request.json()}catch{return json({error:"Invalid JSON request."},400,origin)}
@@ -45,7 +45,7 @@ export default {
       if(!env.GEMINI_API_KEY)return json({error:"Gemini analysis is not configured yet."},503,origin);
       const youtubeUrl=typeof input.youtubeUrl==="string"?input.youtubeUrl.trim():"",audio=typeof input.audioBase64==="string"?input.audioBase64:"",mime=typeof input.mimeType==="string"?input.mimeType.toLowerCase():"";
       const allowed=["audio/wav","audio/x-wav","audio/mpeg","audio/mp3","audio/mp4","audio/m4a","audio/aiff","audio/flac","audio/ogg","audio/aac"];
-      const isYoutube=/^https:\/\/(www\.)?(youtube\.com\/watch\?v=|youtu\.be\/)[a-zA-Z0-9_-]{11}/.test(youtubeUrl);
+      let isYoutube=false;try{const u=new URL(youtubeUrl);const host=["youtube.com","www.youtube.com","m.youtube.com","youtu.be","www.youtu.be"].includes(u.hostname);const parts=u.pathname.split("/").filter(Boolean);const id=u.hostname.includes("youtu.be")?parts[0]:u.pathname==="/watch"?u.searchParams.get("v"):["shorts","embed","live"].includes(parts[0])?parts[1]:null;isYoutube=host&&/^[a-zA-Z0-9_-]{11}$/.test(id||"")}catch{}
       if(youtubeUrl&&!isYoutube)return json({error:"Envie um link válido de vídeo público do YouTube."},400,origin);
       if(!youtubeUrl&&(!audio||!allowed.includes(mime)||audio.length>Math.ceil(MAX_ANALYSIS_BYTES*4/3)+16))return json({error:"Envie um áudio compatível de até 14 MB."},413,origin);
       const prompt=`Analise o conteúdo musical deste vídeo ou áudio como produtor musical e engenheiro de gravação. Concentre-se no SOM. Retorne SOMENTE JSON válido com: summary, bpm_estimate, bpm_confidence, key_estimate, key_confidence, groove, swing, rhythmic_density, instrumentation (array {family,role,confidence}), harmony, texture, energy_dynamics, mood (array), notable_sections (array {approx_time,description}), generation_brief. Descreva camadas e instrumentos audíveis, mudanças de arranjo, frases melódicas, densidade, harmonia e climas ao longo da faixa. Distinga observações de hipóteses. Não identifique nem reproduza sample, melodia, letra ou gravação original. Use null ou baixa confiança quando não souber.`;
