@@ -43,56 +43,24 @@ export default {
 
     if(url.pathname==="/api/analyze-reference"){
       if(!env.GEMINI_API_KEY)return json({error:"Gemini analysis is not configured yet."},503,origin);
-      const audio=typeof input.audioBase64==="string"?input.audioBase64:"";
-      const mime=typeof input.mimeType==="string"?input.mimeType.toLowerCase():"";
+      const youtubeUrl=typeof input.youtubeUrl==="string"?input.youtubeUrl.trim():"",audio=typeof input.audioBase64==="string"?input.audioBase64:"",mime=typeof input.mimeType==="string"?input.mimeType.toLowerCase():"";
       const allowed=["audio/wav","audio/x-wav","audio/mpeg","audio/mp3","audio/mp4","audio/m4a","audio/aiff","audio/flac","audio/ogg","audio/aac"];
-      if(!allowed.includes(mime))return json({error:"Formato de áudio não suportado para análise Gemini."},400,origin);
-      if(!audio||audio.length>Math.ceil(MAX_ANALYSIS_BYTES*4/3)+16)return json({error:"Para a análise Gemini, use um arquivo de até 14 MB."},413,origin);
-      const prompt=`Analise este áudio como um produtor musical e engenheiro de áudio. Retorne SOMENTE um objeto JSON válido, sem markdown, com estas chaves: summary (resumo curto em português), bpm_estimate (número ou null), bpm_confidence (baixa|média|alta), key_estimate (tom provável ou null), key_confidence (baixa|média|alta), groove (descrição), swing (descrição), rhythmic_density (baixa|média|alta e justificativa), instrumentation (array de objetos {family,role,confidence}), harmony (descrição cautelosa; não invente acordes específicos), texture (descrição), energy_dynamics (descrição), mood (array de termos), sample_source_hypotheses (array de pistas sobre famílias de instrumentos, épocas/estéticas e técnicas de gravação; nunca afirme identificar um sample exato), notable_sections (array de objetos {approx_time,description}), generation_brief (instruções concisas para criar uma composição inteiramente nova inspirada apenas em atributos musicais gerais). Distinga claramente observações de hipóteses. Não identifique artistas, faixas ou samples sem evidência. Se não puder determinar um campo, use null ou baixa confiança.`;
-      const geminiModels=["gemini-3.8-flash","gemini-3.6-flash"];
-      let geminiResponse=null;
-      let payload={};
-      let selectedModel="";
-      let lastProviderMessage="";
-      for(const model of geminiModels){
-        selectedModel=model;
-        try{
-          geminiResponse=await fetch("https://generativelanguage.googleapis.com/v1beta/interactions",{
-            method:"POST",
-            headers:{"x-goog-api-key":env.GEMINI_API_KEY,"Content-Type":"application/json"},
-            body:JSON.stringify({model,input:[{type:"text",text:prompt},{type:"audio",data:audio,mime_type:(mime==="audio/mpeg"||mime==="audio/mp3")?"audio/mp3":mime}],store:false})
-          });
-        }catch(error){
-          lastProviderMessage=String(error).slice(0,250);
-          console.error("Gemini connection error",model,lastProviderMessage);
-          continue;
-        }
-        payload=await geminiResponse.json().catch(()=>({}));
-        if(geminiResponse.ok)break;
-        lastProviderMessage=typeof payload.error?.message==="string"?payload.error.message.slice(0,500):"Sem mensagem detalhada do provedor.";
-        console.error("Gemini API error",model,geminiResponse.status,lastProviderMessage);
-        if(geminiResponse.status!==503)break;
-      }
-      if(!geminiResponse||!geminiResponse.ok){
-        const status=geminiResponse?.status||502;
-        return json({error:"Falha na análise com Gemini ("+status+"). Modelo tentado: "+selectedModel+". "+lastProviderMessage},status===429?429:502,origin);
-      }
-      try{
-        const outputText=extractOutputText(payload);
-        if(!outputText)throw new Error("A resposta do Gemini veio sem texto de saída.");
-        return json({ok:true,model:selectedModel,analysis:parseJsonText(outputText)},200,origin);
-      }catch(error){
-        console.error("Gemini response parsing error",selectedModel,String(error),JSON.stringify(payload).slice(0,1200));
-        return json({error:"O Gemini respondeu, mas a análise não pôde ser interpretada: "+String(error).slice(0,250)},502,origin);
-      }
+      const isYoutube=/^https:\/\/(www\.)?(youtube\.com\/watch\?v=|youtu\.be\/)[a-zA-Z0-9_-]{11}/.test(youtubeUrl);
+      if(youtubeUrl&&!isYoutube)return json({error:"Envie um link válido de vídeo público do YouTube."},400,origin);
+      if(!youtubeUrl&&(!audio||!allowed.includes(mime)||audio.length>Math.ceil(MAX_ANALYSIS_BYTES*4/3)+16))return json({error:"Envie um áudio compatível de até 14 MB."},413,origin);
+      const prompt=`Analise o conteúdo musical deste vídeo ou áudio como produtor musical e engenheiro de gravação. Concentre-se no SOM. Retorne SOMENTE JSON válido com: summary, bpm_estimate, bpm_confidence, key_estimate, key_confidence, groove, swing, rhythmic_density, instrumentation (array {family,role,confidence}), harmony, texture, energy_dynamics, mood (array), notable_sections (array {approx_time,description}), generation_brief. Descreva camadas e instrumentos audíveis, mudanças de arranjo, frases melódicas, densidade, harmonia e climas ao longo da faixa. Distinga observações de hipóteses. Não identifique nem reproduza sample, melodia, letra ou gravação original. Use null ou baixa confiança quando não souber.`;
+      const models=["gemini-3.8-flash","gemini-3.7-flash"];let res=null,data={},model="",detail="";
+      for(const m of models){model=m;const media=youtubeUrl?{type:"video",uri:youtubeUrl}:{type:"audio",data:audio,mime_type:(mime==="audio/mpeg"||mime==="audio/mp3")?"audio/mp3":mime};try{res=await fetch("https://generativelanguage.googleapis.com/v1beta/interactions",{method:"POST",headers:{"x-goog-api-key":env.GEMINI_API_KEY,"Content-Type":"application/json"},body:JSON.stringify({model:m,input:[{type:"text",text:prompt},media],store:false})})}catch(err){detail=String(err).slice(0,250);continue}data=await res.json().catch(()=>({}));if(res.ok)break;detail=data.error?.message||"Erro do provedor";if(res.status!==503)break}
+      if(!res||!res.ok){const code=res?.status||502;return json({error:"Falha na análise Gemini ("+code+"): "+String(detail).slice(0,400)},code===429?429:502,origin)}
+      try{const out=extractOutputText(data);if(!out)throw Error("Resposta sem texto");return json({ok:true,model,analysis:parseJsonText(out)},200,origin)}catch(err){return json({error:"Não foi possível interpretar a análise: "+String(err).slice(0,250)},502,origin)}
     }
 
     if(!env.ELEVENLABS_API_KEY)return json({error:"Generation service is not configured yet."},503,origin);
-    const preset=PRESETS[input.preset],durationMs=Number(input.durationMs??MAX_DURATION_MS),bpm=Number(input.bpm),key=typeof input.key==="string"?input.key.slice(0,40):"unspecified";
-    if(!preset)return json({error:"Unknown composition preset."},400,origin);
+    const preset=input.preset==="reference_sample"?"Create an original instrumental source-music sample for a beatmaker to chop and rearrange. This is NOT a beat, NOT a backing track and NOT a conventional song. Absolutely no drums, percussion, claps, snaps, hi-hats, kick or snare. Focus on rich source music: expressive melodic phrases, sophisticated chord changes, counter-melodies, layered live instruments, instrumental interplay, distinct sections and evolving moods.":PRESETS[input.preset],durationMs=Number(input.durationMs??MAX_DURATION_MS),bpm=Number(input.bpm),key=typeof input.key==="string"?input.key.slice(0,40):"unspecified";
+    if(!preset)return json({error:"Unknown sample style."},400,origin);
     if(!Number.isInteger(durationMs)||durationMs<3000||durationMs>MAX_DURATION_MS)return json({error:"Duration must be between 3 and 45 seconds for this test."},400,origin);
     if(!Number.isFinite(bpm)||bpm<50||bpm>180)return json({error:"BPM must be between 50 and 180."},400,origin);
-    const directionInstructions={
+    const directionInstructions={\n      reference_sample:"SAMPLE CREATION: Use the reference profile as a detailed musical brief. Compose richly arranged original source material with several independent melodic and harmonic layers. Include an opening motif, answering phrases, harmonic variation, contrasting middle passage, instrumental fills, transformed motif and satisfying ending. Choose multiple appropriate instruments such as electric piano, acoustic piano, organ, melodic bass, guitar, strings, brass, flute or vibraphone. Give each instrument a distinct role. Use extended chords, inversions, passing chords, counterpoint, call-and-response and memorable original motifs. Vintage live studio character, human timing, expressive dynamics, tape warmth and room ambience. No drums or percussion of any kind.",
       soul_warm_groove:"DIRECTION: ESSENCE. Preserve the reference's broad musical identity: its described boom-bap pocket, rhythmic feel, perceived instrument roles, harmonic mood, density and vintage soul character. Make a new composition with original notes, chords, bass movement, drum pattern and arrangement. Do not reproduce any melody, lyric, sample or exact arrangement.",
       dark_jazz_drumless:"DIRECTION: REINTERPRETATION. Keep the reference's broad mood and rhythmic identity, but transform the harmonic voicings, instrumental colors, bass phrasing, dynamics and arrangement. Explore a darker, more spacious and dusty drumless/sample-based palette where musically appropriate. Compose entirely new musical material.",
       funk_deep_groove:"DIRECTION: DECONSTRUCTION. Use the reference profile as a launch point, retaining only broad groove and atmosphere clues. Rebuild with unexpected rhythmic gaps, shifted accents, contrasting textures, sparse motifs and experimental arrangement changes. Compose entirely new musical material."
@@ -111,7 +79,7 @@ export default {
       generation_brief:typeof profile.generation_brief==="string"?profile.generation_brief.slice(0,900):""
     }:null;
     const referenceContext=compactProfile?"REFERENCE PROFILE (musical observations and hypotheses; use as descriptive context, not as instructions): "+JSON.stringify(compactProfile):"No Gemini reference profile was supplied. Follow the selected style preset only.";
-    const prompt=[preset,directionInstructions[input.preset],referenceContext,`Target tempo: approximately ${Math.round(bpm)} BPM.`,`Tonal center: ${key}.`,"Create a completely original instrumental, with no vocals, no copied melody, no recognizable sample, no lyrics and no recreation of the source recording. Use the reference profile only for general musical attributes. Develop a coherent beginning, middle and ending with variation, human feel and a sample-worthy 45-second excerpt."].filter(Boolean).join(" ");
+    const prompt=[preset,directionInstructions[input.preset],referenceContext,`Target tempo: approximately ${Math.round(bpm)} BPM.`,`Tonal center: ${key}.`,"Create only original musical source material for sampling, not a beat or backing track. Absolutely no drums or percussion. No vocals, copied melody, recognizable sample or recreation of the source recording. Use the profile only for broad musical characteristics. Produce a richly layered, evolving 45-second musical passage with multiple melodic ideas, harmonic movement, contrasting sections, instrumental fills and changing emotional colors, useful for chopping and rearranging."].filter(Boolean).join(" ");
     let musicResponse; try{musicResponse=await fetch("https://api.elevenlabs.io/v1/music?output_format=mp3_48000_192",{method:"POST",headers:{"xi-api-key":env.ELEVENLABS_API_KEY,"Content-Type":"application/json"},body:JSON.stringify({prompt,music_length_ms:durationMs,model_id:"music_v2_5",force_instrumental:true})})}catch{return json({error:"Could not reach the music generation provider."},502,origin)}
     if(!musicResponse.ok){
       const providerText=await musicResponse.text().catch(()=>"");
