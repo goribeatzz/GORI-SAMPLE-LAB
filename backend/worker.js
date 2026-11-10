@@ -55,6 +55,7 @@ export default {
       try{const out=extractOutputText(data);if(!out)throw Error("Resposta sem texto");return json({ok:true,model,analysis:parseJsonText(out)},200,origin)}catch(err){return json({error:"Não foi possível interpretar a análise: "+String(err).slice(0,250)},502,origin)}
     }
 
+    if(input.preset==="reference_sample")return json({error:"A análise da referência está pronta. O motor gratuito de criação de samples ainda está em integração; nenhum serviço pago será acionado nesta etapa."},503,origin);
     if(!env.ELEVENLABS_API_KEY)return json({error:"Generation service is not configured yet."},503,origin);
     const preset=input.preset==="reference_sample"?"Create an original instrumental source-music sample for a beatmaker to chop and rearrange. This is NOT a beat, NOT a backing track and NOT a conventional song. Absolutely no drums, percussion, claps, snaps, hi-hats, kick or snare. Focus on rich source music: expressive melodic phrases, sophisticated chord changes, counter-melodies, layered live instruments, instrumental interplay, distinct sections and evolving moods.":PRESETS[input.preset],durationMs=Number(input.durationMs??MAX_DURATION_MS),bpm=Number(input.bpm),key=typeof input.key==="string"?input.key.slice(0,40):"unspecified";
     if(!preset)return json({error:"Unknown sample style."},400,origin);
