@@ -23,10 +23,8 @@ jobs:
           workingDirectory: backend
           command: deploy
           secrets: |
-            ELEVENLABS_API_KEY
             TURNSTILE_SECRET_KEY
             GEMINI_API_KEY
         env:
-          ELEVENLABS_API_KEY: ${{ secrets.ELEVENLABS_API_KEY }}
           TURNSTILE_SECRET_KEY: ${{ secrets.TURNSTILE_SECRET_KEY }}
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
