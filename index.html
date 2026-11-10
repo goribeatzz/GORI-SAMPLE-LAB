@@ -1,73 +1,9 @@
 <!doctype html>
-<html lang="pt-BR">
-<head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-  <meta name="theme-color" content="#17120f">
-  <meta name="description" content="GORI SAMPLE LAB — geração de instrumentais originais com IA.">
-  <link rel="manifest" href="./manifest.webmanifest">
-  <link rel="icon" href="./icons/icon.svg" type="image/svg+xml">
-  <link rel="stylesheet" href="./styles.css?v=20261108-8">
-  <title>GORI SAMPLE LAB</title>
-</head>
-<body>
-  <header class="topbar">
-    <div class="brandmark">G</div>
-    <div><p class="eyebrow">GORIBEATZZ PRESENTS</p><h1>GORI SAMPLE LAB</h1></div>
-    <span class="status" id="engineStatus">AI GENERATION</span>
-  </header>
-  <main>
-    <section class="hero panel">
-      <p class="eyebrow gold">SAMPLE RESEARCH / VOL. 01</p>
-      <h2>Transforme uma referência<br><em>em novas possibilidades.</em></h2>
-      <p class="muted">Analise uma referência, ajuste BPM e tonalidade e gere três instrumentais originais com IA.</p>
-    </section>
-
-    <section class="panel">
-      <div class="section-head"><span class="step">01</span><div><p class="eyebrow">SOURCE MATERIAL</p><h2>Referência do YouTube</h2></div></div>
-      <label class="field-label" for="youtubeUrl">COLE O ENDEREÇO DO VÍDEO</label>
-      <div class="url-row"><input id="youtubeUrl" type="url" inputmode="url" placeholder="https://www.youtube.com/watch?v=..." autocomplete="url"><button id="loadYoutubeBtn" class="button outline" type="button">Abrir</button></div>
-      <p class="hint">O link abre o vídeo como referência para você ouvir. O YouTube não libera o áudio do player para análise direta neste aplicativo.</p>
-      <div id="youtubePreview" class="youtube-preview" hidden></div>
-      <div class="file-divider"><span>ÁUDIO PARA ANÁLISE</span></div>
-      <label class="dropzone" for="audioFile"><span class="upload-icon">＋</span><strong>Importar o áudio da referência</strong><small>WAV, MP3, M4A, AIFF, FLAC ou OGG · até 14 MB para análise com Gemini</small></label>
-      <input id="audioFile" type="file" accept="audio/*,.wav,.mp3,.m4a,.aiff,.aif,.flac,.ogg" hidden>
-      <div class="fileline" id="fileLine">Nenhum arquivo selecionado</div>
-      <audio id="sourcePlayer" controls hidden></audio>
-      <p class="hint">A análise é feita localmente a partir do arquivo selecionado. O link do YouTube não é baixado nem analisado. Importe somente áudio que você tenha direito de usar.</p>
-      <div class="url-row"><button id="analyzeBtn" class="button outline" disabled>Análise local</button><button id="analyzeAiBtn" class="button primary" disabled>Analisar com Gemini</button></div>\n      <div id="geminiAnalysis" class="profile" hidden style="white-space:pre-wrap"></div>
-      <p class="feedback" id="analysisFeedback" aria-live="polite"></p>
-    </section>
-
-    <section class="panel" id="analysisPanel">
-      <div class="section-head"><span class="step">02</span><div><p class="eyebrow">REFERENCE PROFILE</p><h2>Análise do material</h2></div></div>
-      <div class="metrics">
-        <div><small>DURAÇÃO</small><strong id="duration">—</strong></div>
-        <div><small>BPM ESTIMADO</small><strong id="bpmReadout">—</strong></div>
-        <div><small>TONALIDADE</small><strong id="keyReadout">—</strong></div>
-        <div><small>ENERGIA</small><strong id="energyReadout">—</strong></div>
-      </div>
-      <div class="profile"><span>TEXTURA / BRILHO</span><strong id="textureReadout">Aguardando análise</strong></div>
-      <div class="manual-grid">
-        <label>BPM manual<input id="bpmInput" type="number" min="50" max="180" value="86"></label>
-        <label>Tom manual<select id="keyInput"></select></label>
-      </div>
-    </section>
-
-    <section class="panel">
-      <div class="section-head"><span class="step">03</span><div><p class="eyebrow">GENERATIVE SKETCHES</p><h2>Três direções</h2></div></div>
-      <p class="muted">As três direções usam o perfil do Gemini quando uma referência foi analisada. Ajuste BPM e tom antes de gerar.</p>
-      <div class="security-check"><p class="field-label">VERIFICAÇÃO DE SEGURANÇA — NECESSÁRIA PARA ANÁLISE E GERAÇÃO</p><div class="cf-turnstile" data-sitekey="0x4AAAAAAF5AzEvPRMtDqrfH" data-theme="dark" data-language="pt-BR"></div></div>
-      <div class="proposals">
-        <article class="proposal"><div><span class="tag">01 / ESSENCE</span><h3>Essence</h3><p>Preserva groove, atmosfera e funções instrumentais com material novo</p></div><button class="button outline generate" data-style="warm">Gerar com IA</button><audio controls hidden></audio><a class="download" hidden>↓ Baixar MP3</a><p class="proposal-feedback" aria-live="polite"></p></article>
-        <article class="proposal"><div><span class="tag">02 / REINTERPRETATION</span><h3>Reinterpretation</h3><p>Transforma harmonia, timbres, dinâmica e arranjo</p></div><button class="button outline generate" data-style="dark">Gerar com IA</button><audio controls hidden></audio><a class="download" hidden>↓ Baixar MP3</a><p class="proposal-feedback" aria-live="polite"></p></article>
-        <article class="proposal"><div><span class="tag">03 / DECONSTRUCTION</span><h3>Deconstruction</h3><p>Reconstrói groove e atmosfera de forma livre e experimental</p></div><button class="button outline generate" data-style="airy">Gerar com IA</button><audio controls hidden></audio><a class="download" hidden>↓ Baixar MP3</a><p class="proposal-feedback" aria-live="polite"></p></article>
-      </div>
-      <p class="feedback" id="generationFeedback" aria-live="polite"></p>
-    </section>
-  </main>
-  <footer><strong>GORI SAMPLE LAB</strong><span>ANALOG SOUL / DIGITAL WORKFLOW</span><small>AI composition engine · v0.2</small></footer>
-  <script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>
-  <script src="./app.js?v=20261108-8"></script>
-</body>
-</html>
+<html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="theme-color" content="#17120f"><meta name="description" content="GORI SAMPLE LAB — criador de samples originais a partir de referências musicais."><link rel="manifest" href="./manifest.webmanifest"><link rel="icon" href="./icons/icon.svg" type="image/svg+xml"><link rel="stylesheet" href="./styles.css?v=20261110-2"><title>GORI SAMPLE LAB</title></head>
+<body><header class="topbar"><div class="brandmark">G</div><div><p class="eyebrow">GORIBEATZZ PRESENTS</p><h1>GORI SAMPLE LAB</h1></div><span class="status">SAMPLE CREATOR</span></header>
+<main><section class="hero panel"><p class="eyebrow gold">REFERENCE IN / ORIGINAL SAMPLE OUT</p><h2>Uma referência.<br><em>Um novo sample.</em></h2><p class="muted">Analise a atmosfera musical de uma referência e crie uma composição original para recortar, manipular e transformar em beat.</p></section>
+<section class="panel"><label class="field-label" for="referenceUrl">LINK DO YOUTUBE OU SPOTIFY</label><input id="referenceUrl" type="url" inputmode="url" placeholder="Cole aqui o link da música"><p class="hint">Vídeos públicos do YouTube podem ser analisados diretamente. Para Spotify, envie também um arquivo de áudio autorizado, pois o link não libera o áudio da faixa.</p>
+<div class="file-divider"><span>OU ENVIE UM ARQUIVO DE ÁUDIO</span></div><label class="dropzone" for="referenceFile"><span class="upload-icon">＋</span><strong>Selecionar áudio de referência</strong><small>WAV, MP3, M4A, AIFF, FLAC ou OGG · até 14 MB</small></label><input id="referenceFile" type="file" accept="audio/*,.wav,.mp3,.m4a,.aiff,.aif,.flac,.ogg" hidden><div class="fileline" id="fileName">Nenhum arquivo selecionado</div>
+<div class="security-check"><p class="field-label">VERIFICAÇÃO DE SEGURANÇA</p><div class="cf-turnstile" data-sitekey="0x4AAAAAAF5AzEvPRMtDqrfH" data-theme="dark" data-language="pt-BR"></div></div><button id="analyzeBtn" class="button primary">Analisar áudio</button><p class="feedback" id="analysisStatus" aria-live="polite"></p></section>
+<section class="panel"><div class="analysis-heading"><div><p class="eyebrow">REFERENCE PROFILE</p><h2>Atmosfera identificada</h2></div><span id="analysisMeta" class="analysis-meta"></span></div><div id="analysisResult" class="analysis-result" hidden></div><button id="createBtn" class="button primary" disabled>Criar sample pela referência</button><p class="feedback" id="generationStatus" aria-live="polite"></p><audio id="samplePlayer" controls hidden></audio><a id="downloadSample" class="download" hidden>↓ Baixar sample</a></section></main>
+<footer><strong>GORI SAMPLE LAB</strong><span>ORIGINAL SOURCE MUSIC FOR BEATMAKERS</span><small>Reference-based sample creation</small></footer><script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script><script src="./app.js?v=20261110-2"></script></body></html>
